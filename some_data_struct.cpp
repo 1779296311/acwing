@@ -21,6 +21,688 @@
 #include <functional>
 #include <stdlib.h>
 
+namespace p163{
+    using pii = std::pair<int, int>;
+    const int N = 100012;
+    int n, m, k, x, cnt, ans;
+    int d[N], del[N], pre[N], nxt[N];
+    std::priority_queue<pii, std::vector<pii>, std::greater<pii>> q;
+    void _remove(int x){
+        del[x] = 1;
+        pre[nxt[x]] = pre[x];
+        nxt[pre[x]] = nxt[x];
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> m;
+        for(int i=1; i<=n; ++i){
+            std::cin >> x;
+            if(!x)continue;
+            if(!k || (long long)x*d[k] < 0){
+                d[++k] = x;
+            }else{
+                d[k] += x;
+            }
+        }
+        for(int i=1; i<=k; ++i){
+            if(d[i] > 0) ans += d[i], ++cnt;
+            pre[i] = i - 1;
+            nxt[i] = i < k ? i + 1 : 0;
+            q.emplace(abs(d[i]), i);
+        }
+        while(cnt > m){
+            auto t = q.top();q.pop();
+            while(del[t.second])t=q.top(),q.pop();
+            auto [v, i] = t;
+            if(d[i] > 0 || (pre[i] && nxt[i])){
+                ans -= v;
+                d[i] = d[i] + d[pre[i]] + d[nxt[i]];
+                q.emplace(abs(d[i]), i);
+                _remove(pre[i]);
+                _remove(nxt[i]);
+                --cnt;
+            }
+        }
+        std::cout << ans << std::endl;
+        return 0;
+    }
+};
+
+namespace p161{
+    const int N = 100012;
+    int t, n;
+    int trie[N << 1][10];
+    std::string str;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> t;
+        std::function<void(void)> _deal = [&](void){
+            std::cin >> n;
+            int code = 0;
+            bzero(trie, N * 10 * 4 * 2);
+            std::unordered_set<int> mp;
+            std::vector<std::string> strs(n);
+            for(auto &s : strs)std::cin >> s;
+            for(auto &str : strs){
+                int cur = 0, pre = code;
+                for(auto &c : str){
+                    if(!trie[cur][c-'0'])trie[cur][c-'0'] = ++code;
+                    cur = trie[cur][c-'0'];
+                    if(mp.count(cur)){
+                        std::cout << "NO" << std::endl;
+                        return ;
+                    }
+                }
+                if(pre == code){
+                    std::cout << "NO" << std::endl;
+                    return ;
+                }
+                mp.insert(cur);
+            }
+            std::cout << "YES" << std::endl;
+        };
+        while(t--)_deal();
+        return 0;
+    }
+};
+
+namespace p160_kmp{
+    const int N = 1e5 + 12;
+    int n, m, q, x;
+    int ne[N], cnt[N];
+    std::string c1, c2;
+    void _get_next(){
+        int j = 1, jump = 0;
+        while(j<=m){
+            if(c2[j] == c2[jump]){
+                ne[++j] = ++jump;
+            }else if(!jump){
+                ne[++j] = 0;
+            }else{
+                jump = ne[jump];
+            }
+        }
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> m >> q;
+        std::cin >> c1 >> c2;
+        _get_next();
+        int j = 0, i = 0;
+        while(i<n && j<=m){
+            if(c1[i] == c2[j]){
+                ++i, ++j;
+                ++cnt[j];
+            }else if(!j){
+                ++cnt[j];
+                ++i;
+            }else{
+                j = ne[j];
+            }
+        }
+        for(int i=m; i; --i)cnt[ne[i]] += cnt[i];
+        while(q--){
+            std::cin >> x;
+            std::cout << cnt[x] - cnt[x+1] << std::endl;
+        }
+        return 0;
+    }
+};
+namespace p160_hash{
+    using ull = unsigned long long;
+    const ull hash_code = 131;
+    const int N = 2e5 + 12;
+    int n, m, q, x;
+    std::string c1, c2;
+    ull a[N], b[N], _pow[N], cnt[N];
+    ull _get_hash(ull *sums,  int l, int len){
+        int r = l + len - 1;
+        return sums[r] - sums[l-1] * _pow[len];
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> m >> q;
+        std::cin >> c1 >> c2 ;
+        _pow[0] = 1;
+        for(int i=1; i<=n; ++i){
+            a[i]   = a[i-1] * hash_code + c1[i-1];
+            _pow[i] = _pow[i-1] * hash_code;
+        }
+        for(int i=1; i<=m; ++i){
+            b[i] += b[i-1] * hash_code + c2[i-1];
+        }
+        for(int i=1; i<=n; ++i){
+            int l = 0, r = std::min(n - i + 1, m) + 1;
+            while(l < r){
+                int mid = l + ((r - l) >> 1);
+                if(_get_hash(a, i, mid) !=
+                   _get_hash(b, 1, mid)){
+                    r = mid;
+                }else{
+                    l = mid + 1;
+                }
+            }
+            ++cnt[r - 1];
+        }
+        std::function<void(void)> _deal = [&](void){
+            std::cin >> x;
+            std::cout << cnt[x] << std::endl;
+        };
+        while(q--)_deal();
+        return 0;
+    }
+};
+void mb_next(int *next, std::string str){
+    int len = str.size();
+    for(int i=2, j=0; i<=len; ++i){
+        while(j && str[i] != str[j+1])j = next[j];
+        if(str[i] == str[j+1])++j;
+        next[i] = j;
+    }
+}
+namespace p159_kmp2{
+    using vvc = std::vector<std::vector<char>>;
+    const int N = 10024;
+    int n, m, l;
+    std::string tmp;
+    int next1[N], next2[N];
+    void _get_next(int *next, vvc &str){
+        int j = 1, jump = 0, len = str.size();
+        while(j<=len){
+            if(str[j] == str[jump]){
+                next[++j] = ++jump;
+            }else if(!jump){
+                next[++j] = 0;
+            }else{
+               jump = next[jump];
+            }
+        }
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> m;
+        std::vector<std::vector<char>> s1(n+1, std::vector<char>(m+1)),
+                                       s2(m+1, std::vector<char>(n+1));
+        for(int i=0; i<n; ++i){
+            std::cin >> tmp;
+            for(int j=0; j<m; ++j){
+                s2[j][i] = s1[i][j] = tmp[j];
+            }
+        }
+        _get_next(next1, s1);
+        _get_next(next2, s2);
+        std::cout << (n - next1[n]) * (m - next2[m]) << std::endl;
+        return 0;
+    }
+};
+namespace p159{
+    const int N = 10024;
+    bool ism[N];
+    char str[N][128];
+    int n, m, next[N];
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> m;
+        for(int i=0; i<n; ++i){
+            std::cin >> str[i];
+            for(int l=1; l<=m; ++l){
+                if(ism[l])continue;
+                bool is_m = 0;
+                for(int k=l; k<m; k+=l){
+                    for(int p=0; p<l && (k+p)<m; ++p){
+                        if(str[i][p] != str[i][k+p]){
+                            is_m = 1;
+                            break;
+                        }
+                    }
+                    if(is_m)break;
+                }
+                if(is_m)ism[l] = true;
+            }
+        }
+        int wid;
+        for(int l=1; l<=m; ++l){
+            if(!ism[l]){
+                wid = l;
+                break;
+            }
+        }
+        for(int i=0; i<n; ++i)str[i][wid] = 0;
+        int j = 1, jump = 0;
+        while(j<=n){
+            if(!strcmp(str[j], str[jump])){
+                next[++j] = ++jump;
+            }else if(!jump){
+                next[++j] = 0;
+            }else{
+                jump = next[jump];
+            }
+        }
+        std::cout << wid * (n - next[n]) << std::endl;
+        return 0;
+    }
+};
+namespace p158{
+    std::string str1, str2, ans;
+    int _min_dis(std::string &str){
+        int len = str.size();
+        for(int i=0; i<len; ++i)str += str[i];
+        int i = 0, j = 1, k;
+        while(i<len && j<len){
+            for(k=0; k<len && str[i+k] == str[j+k]; ++k);
+            if(k == len)break;
+            if(str[i+k] > str[j+k]){
+                i = i + k + 1;
+                i += i == j;
+            }else{
+                j = j + k + 1;
+                j += i == j;
+            }
+        }
+        return std::min(i, j);
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> str1 >> str2;
+        int len1 = str1.size(), len2 = str2.size();
+        std::function<bool(void)> _check = [&](void){
+            int l1 = _min_dis(str1), l2 = _min_dis(str2);
+            ans = {begin(str1) + l1, begin(str1) + l1 + len1};
+            return ans == std::string {begin(str2) + l2, begin(str2) + l2 + len2};
+        };
+        if(len1 != len2 || !_check()){
+            std::cout << "No";
+        }else{
+            std::cout << "Yes" << std::endl;
+            std::cout << ans  << std::endl;
+        }
+        return 0;
+    }
+};
+namespace p157{
+    int n;
+    std::string str1, str2;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n;
+        std::function<std::string(std::string &str, int &idx)> _dfs
+            = [&](std::string &str, int &idx){
+                std::vector<std::string> tmp;
+                ++idx;
+                while(str[idx] == '0')tmp.emplace_back(_dfs(str, idx));
+                ++idx;
+                std::sort(begin(tmp), end(tmp));
+                std::string ans = "0";
+                for(auto &s : tmp)ans += s;
+                return ans + '1';
+            };
+        std::function<void(void)> _deal = [&](void){
+            std::cin >> str1 >> str2;
+            str1 = '0' + str1 + '1';
+            str2 = '0' + str2 + '1';
+            int idx1 = 0, idx2 = 0;
+            if(_dfs(str1, idx1) == _dfs(str2, idx2)){
+                std::cout << "same" << std::endl;
+            }else{
+                std::cout << "different" << std::endl;
+            }
+        };
+        while(n--)_deal();
+        return 0;
+    }
+};
+namespace p156{
+    using ull = unsigned long long;
+    const ull N = 1024, hash_code_c = 131, hash_code_r = 13331;
+    int m, n ,a ,b, q;
+    ull  sm[N][N], t[N][N], _powc, _powr;
+    std::unordered_set<int> mp;
+    void _calc_hash(ull (*sums)[N], int row, int col){
+        for(int i=1; i<=row; ++i){
+            for(int j=1; j<=col; ++j){
+                scanf("%1u", &sums[i][j]);
+                sums[i][j] += sums[i-1][j] * hash_code_r;
+                sums[i][j] += sums[i][j-1] * hash_code_c;
+                sums[i][j] -= sums[i-1][j-1] * hash_code_c * hash_code_r;
+            }
+        }
+    }
+    ull _pow(ull a, ull b){
+        ull ans = 1;
+        while(b){
+            if(b & 1)ans *= a;
+            a *= a;
+            b >>= 1;
+        }
+        return ans;
+    }
+    int main(int argc,const char *argv[]){
+        scanf("%d%d%d%d", &m, &n, &a, &b);
+        _powr = _pow(hash_code_r, a);
+        _powc = _pow(hash_code_c, b);
+        _calc_hash(sm, m, n);
+        for(int i=a; i<=m; ++i){
+            for(int j=b; j<=n; ++j){
+                ull hash_code = sm[i][j];
+                hash_code -= sm[i][j-b] * _powc;
+                hash_code -= sm[i-a][j] * _powr;
+                hash_code += sm[i-a][j-b] * _powc * _powr;
+                mp.insert(hash_code);
+            }
+        }
+        scanf("%d", &q);
+        std::function<void(void)> _deal = [&](void){
+            _calc_hash(t, a, b);
+            std::cout << mp.count(t[a][b]) << std::endl;
+        };
+        while(q--)_deal();
+        return 0;
+    }
+};
+namespace p155{
+    using pii = std::pair<int, int>;
+    const int N = 1e5 + 12;
+    int n, waitn, endt, t, m, p;
+    std::queue<pii> waitq;
+    std::priority_queue<pii, std::vector<pii>, std::greater<pii>> ends;
+    std::set<pii> runs;
+    bool _alloc(int t, int m, int p){
+        for(auto it=begin(runs); it!=end(runs); ++it){
+            auto tmp = it, nxt = ++tmp;
+            if(nxt == end(runs))break;
+            int start = it->first + it->second;
+            if(start + m > nxt->first)continue;
+            runs.emplace(start, m);
+            ends.emplace(t+p, start);
+            return true;
+        }
+        return false;
+    }
+    void _back(int t){
+        while(ends.size() && ends.top().first <= t){
+            int nowtime = ends.top().first;
+            while(ends.size() && ends.top().first == nowtime){
+                auto[et, start] = ends.top();ends.pop();
+                runs.erase(runs.lower_bound({start, 0}));
+            }
+            while(waitq.size()){
+                if(_alloc(nowtime, waitq.front().first, waitq.front().second)){
+                    waitq.pop();
+                }else{
+                    break;
+                }
+            }
+            endt = nowtime;
+        }
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n;
+        runs.emplace(-1, 1);
+        runs.emplace(n, 1);
+        while(1){
+            std::cin >> t >> m >> p;
+            if(!t && !m && !p)break;
+            _back(t);
+            if(!_alloc(t, m, p)){
+                waitq.emplace(m, p);
+                ++waitn;
+            }
+        }
+        _back(1e9 + 12);
+        std::cout << endt << std::endl << waitn << std::endl;
+        return 0;
+    }
+};
+namespace p154{
+    int n, k;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n >> k;
+        std::vector<int> nums(n), mins, maxs;
+        std::deque<int> st;
+        for(auto &x : nums) std::cin >> x;
+        for(int i=0; i<n; ++i){
+            while(st.size() && nums[st.back()] >= nums[i])st.pop_back();
+            st.push_back(i);
+            while(i - st.front() >= k)st.pop_front();
+            mins.emplace_back(nums[st.front()]);
+        }
+        while(st.size())st.pop_back();
+        for(int i=0; i<n; ++i){
+            while(st.size() && nums[st.back()] <= nums[i])st.pop_back();
+            st.push_back(i);
+            while(i-st.front() >= k)st.pop_front();
+            maxs.emplace_back(nums[st.front()]);
+        }
+        for(int i=k-1; i<n; ++i)std::cout << mins[i] << " ";
+        std::cout << std::endl;
+        for(int i=k-1; i<n; ++i)std::cout << maxs[i] << " ";
+        std::cout <<  std::endl;
+        return 0;
+    }
+};
+namespace p153{
+    const int N = 1024, M = N * N, INF = 0x3f3f3f3f;
+    int head[N], to[N], next[N], idx;
+    int col[N], nums[N];
+    void _add(int f, int t){
+        to[++idx] = t;
+        next[idx] = head[f];
+        head[f]   = idx;
+    }
+    int _dfs(int x, int c){
+        col[x] = c;
+        for(int t=head[x]; t; t=next[t]){
+            int y = to[t];
+            if(col[y] == 0 && !_dfs(y, 3 - c)){
+                return 0;
+            }else if(col[y] == c){
+                return 0;
+            }
+        }
+        return 1;
+    }
+    int n, x;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n;
+        for(int i=1; i<=n; ++i)std::cin >> nums[i];
+        for(int i=1; i<=n; ++i){
+            int min_ = INF;
+            for(int j=n; j>i; --j){
+                if(nums[i] < nums[j] && nums[i] > min_){
+                    _add(i, j), _add(j, i);
+                }
+                min_ = std::min(min_, nums[j]);
+            }
+        }
+        for(int i=1; i<=n; ++i){
+            if(!col[i] && !_dfs(i, 1)){
+                std::cout << 0 << std::endl;
+                return 0;
+            }
+        }
+        std::stack<int> s1, s2;
+        s1.push(nums[1]);
+        int now = 1, case1, case2;
+        std::cout << "a ";
+        for(int i=2; i<=n; ++i){
+            case1 = (s1.size() && s1.top() == now);
+            case2 = (s2.size() && s2.top() == now);
+            while(case1 || case2){
+                if(case1)std::cout << "b ", s1.pop();
+                if(case2){
+                    if(col[i] == 1)std::cout << "a ", s1.push(nums[i++]);
+                    std::cout << "d ", s2.pop();
+                }
+                ++now;
+                case1 = (s1.size() && s1.top() == now);
+                case2 = (s2.size() && s2.top() == now);
+            }
+            if(i > n)break;
+            if(col[i] == 1)std::cout << "a ", s1.push(nums[i]);
+            if(col[i] == 2)std::cout << "c ", s2.push(nums[i]);
+        }
+        case1 = (s1.size() && s1.top() == now);
+        case2 = (s2.size() && s2.top() == now);
+        while(case1 || case2){
+            if(case1)std::cout << "b ", s1.pop();
+            if(case2)std::cout << "d ", s2.pop();
+            ++now;
+            case1 = (s1.size() && s1.top() == now);
+            case2 = (s2.size() && s2.top() == now);
+        }
+        return 0;
+    }
+};
+namespace p162{
+    int N, M, x;
+    std::vector<int> n, m;
+    std::priority_queue<int> big;
+    std::priority_queue<int, std::vector<int>, std::greater<int>> small;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> M >> N;
+        for(int i=0; i<M; ++i){
+            std::cin  >> x;
+            m.emplace_back(x);
+        }
+        for(int i=0; i<N; ++i){
+            std::cin >> x;
+            n.emplace_back(x);
+        }
+        for(int i=0, j=0; i<M || j<N; ++i){
+            if(i<M){
+                if(!big.size() && !small.size()){
+                    big.push(m[i]);
+                }else if(m[i] < big.top()){
+                    big.push(m[i]);
+                }else{
+                    small.push(m[i]);
+                }
+            }
+            while(j<N && i>=M || n[j] == i+1){
+                if(big.size() != j+1){
+                    while(big.size() < j+1)big.push(small.top()), small.pop();
+                    while(big.size() > j+1)small.push(big.top()), big.pop();
+                }
+                std::cout << big.top() << std::endl;
+                ++j;
+            }
+        }
+        return 0;
+    }
+};
+namespace p152{
+    int N, M, ans;
+    char c;
+    std::vector<int> h;
+    int _calc(){
+       std::vector<int> st;
+        int res = 0;
+        for(int i=0; i<=M; ++i){
+            while(st.size() && h[st.back()] >= h[i]){
+                auto cur = st.back();st.pop_back();
+                auto l = st.size() ? st.back() : -1;
+                res = std::max(res, h[cur] * (i - l - 1));
+            }
+            st.push_back(i);
+        }
+        return res;
+    };
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> N >> M;
+        h.resize(M + 1);
+        while(N--){
+            for(int i=0; i<M; ++i){
+                std::cin >> c;
+                h[i] += c=='F' ? 1 : -h[i];
+            }
+            ans = std::max(ans, _calc());
+        }
+        std::cout << ans * 3 << std::endl;
+        return 0;
+    }
+};
+namespace p151{
+    using ll = int;
+    using funcalc = std::function<ll(ll, ll)>;
+    struct _calc_fun{
+        static ll _add(ll a, ll b) {return a + b;};
+        static ll _sub(ll a, ll b) {return a - b;};
+        static ll _mul(ll a, ll b) {return a * b;};
+        static ll _div(ll a, ll b) {return a / b;};
+        static ll _pow(ll a, ll b) {
+            ll ans = 1;
+            while(b>0){
+                if(b & 1)ans *= a;
+                a *= a;
+                b >>= 1;
+            }
+            return ans;
+        };
+    };
+    std::unordered_map<char, std::pair<int, funcalc>> mp
+    {
+        {'+', {1, _calc_fun::_add}},
+        {'-', {1, _calc_fun::_sub}},
+        {'*', {2, _calc_fun::_mul}},
+        {'/', {2, _calc_fun::_div}},
+        {'^', {3, _calc_fun::_pow}},
+    };
+    const int N = 1e6 + 12;
+    char ex[N],  st[N], str[N];
+    int nums[N], op[N];
+    bool isn[N];
+    ll num, nptr, opptr, stptr;
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> (str + 2);
+        int len = strlen(str + 2) + 1;
+        str[1] = '(', str[++len] = ')';
+        for(int i=1,j=1; i<=len; ++i){
+            if(str[i] == '-' && str[i-1]=='('){
+                ex[j++] = '0';
+            }
+            ex[j++] = str[i];
+        }
+        len = strlen(ex+1);
+        for(int i=1; i<=len; ++i){
+            if(std::isdigit(ex[i])){
+                while(std::isdigit(ex[i])) num = num * 10 + ex[i++] - '0';
+                op[++opptr] = num;
+                isn[opptr]  = 1;
+                num = 0;
+                --i;
+            }else if(ex[i] == '('){
+                st[++stptr] = ex[i];
+            }else if(ex[i] == ')'){
+                while(stptr && st[stptr] != '(')op[++opptr] = st[stptr--];
+                stptr -= !!stptr;
+            }else{
+                while(stptr &&
+                        mp[st[stptr]].first >= mp[ex[i]].first){
+                    op[++opptr] = st[stptr--];
+                }
+                st[++stptr] = ex[i];
+            }
+        }
+        ll a, b, i = 1;
+        while(i <= opptr){
+            if(isn[i]){
+                nums[++nptr] = op[i++];
+            }else{
+                auto [l, _op] = mp[op[i++]];
+                b = nums[nptr--], a = nums[nptr--];
+                nums[++nptr] = _op(a, b);
+            }
+        }
+        std::cout << nums[nptr] << std::endl;
+        return 0;
+    }
+};
 namespace p150{
     std::string str;
     int ans, len;
@@ -373,7 +1055,7 @@ namespace p142{
         }
         return ans;
     }
-    int _des_trie(Trie *head){
+    void _des_trie(Trie *head){
         for(auto ptr : head->next){
             if(ptr)_des_trie(ptr);
         }
@@ -458,7 +1140,7 @@ namespace p140{
         int l = 0, r = len - idx2 + 1;
         while(l < r){
             int m = l + ((r - l) >> 1);
-            if(idx2 + m > len || 
+            if(idx2 + m > len ||
                     _get_hash(idx1, idx1+m) !=
                     _get_hash(idx2, idx2+m)){
                 r = m;
@@ -673,6 +1355,45 @@ namespace p138_fuck{
                 std::cout << "Yes" << std::endl;
             }
         }
+        return 0;
+    }
+};
+namespace p137_better{
+    int n;
+    std::vector<int> sn1(12), sn2(12);
+    std::set<std::vector<int>> mp;
+    std::vector<int> _get_min(std::vector<int> &sn){
+        int i = 0, j = 1, k;
+        while(i<6 && j<6){
+            for(k=0; k<6 && sn[i+k] == sn[j+k]; ++k);
+            if(k==6)break;
+            if(sn[i+k] > sn[j+k]){
+                i  = i + k + 1;
+                i += i == j;
+            }else{
+                j  = j + k + 1;
+                j += i == j;
+            }
+        }
+        int be = std::min(i, j);
+        return {begin(sn)+be, begin(sn)+be+6};
+    }
+    int main(int argc,const char *argv[]){
+        std::ios::sync_with_stdio(false);
+        std::cin >> n;
+        while(n--){
+            for(int i=0; i<6; ++i)std::cin >> sn1[i];
+            for(int i=6; i<12;++i)sn1[i] = sn1[i-6];
+            sn2 = sn1;
+            std::reverse(begin(sn2), end(sn2));
+            bool f = !mp.insert(_get_min(sn1)).second |
+                    (sn2!=sn1 && (!mp.insert(_get_min(sn2)).second));
+            if(f){
+                 std::cout << "Twin snowflakes found." << std::endl;
+                 return 0;
+            }
+        }
+        std::cout << "No two snowflakes are alike." << std::endl;
         return 0;
     }
 };

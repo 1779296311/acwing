@@ -233,7 +233,7 @@ namespace packmul2{
                 while(s > n){
                     _pack01(n * v, n * w);
                     s -= n;
-                    n <<= 1; 
+                    n <<= 1;
                 }
                 if(s)_pack01(s * v, s * w);
             }
