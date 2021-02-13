@@ -1,102 +1,101 @@
-/*********************************************
-*     ------------------------
-*     ------------------------
-*     file name: test.cpp
-*     author   : @ JY
-*     date     : 2020--12--11
-**********************************************/
-#include <iostream>
-#include <stdlib.h>
-#include <vector>
-#include <functional>
-#include <numeric>
-#include <unordered_map>
-#include <algorithm>
-
-struct TreeNode{
-    int val;
-    TreeNode *left, *right;
-    TreeNode (int x) : val(x), left(NULL), right(NULL) {}
-};
-namespace p2{
-    TreeNode *buildTree_in_post(std::vector<int> &in, std::vector<int> &post){
-        int len = in.size();
-        std::unordered_map<int, int> mp;
-        for(int i=0; i<len; ++i)mp[in[i]]   = i;
-        std::function<TreeNode*(int, int, int, int)> _dfs
-            = [&](int il, int ir, int pl, int pr){
-                TreeNode *head = NULL;
-                if(il>=ir || pl>=pr)return head;
-                head = new TreeNode(post[pr - 1]);
-                int len = mp[post[pr - 1]] - il;
-                head->left  = _dfs(il, il + len, pl, pl + len);
-                head->right = _dfs(il + len + 1, ir, pl + len, pr - 1);
-                return head;
-            };
-        return _dfs(0, len, 0, len);
+#include <bits/stdc++.h>
+using ll = long long;
+#define lowbit(x) x&(-x)
+const ll N = 501000;
+struct line_tree
+{
+    ll l,r,dat;
+    #define l(x) (x)<<1
+    #define r(x) ((x)<<1)+1
+} t[N<<2];
+ll a[N],c[N],b[N],i,j,n,m;
+ll gcd(ll a,ll b)
+{
+    return b?gcd(b,a%b):a;
+}
+ll sum(ll x)
+{
+    ll ans=0;
+    for(;x;x-=lowbit(x))
+        ans+=c[x];
+    return ans;
+}
+void add(ll x,ll y)
+{
+    for(;x<=n;x+=lowbit(x))
+        c[x]+=y;
+}
+void build(ll p,ll l,ll r)
+{
+    t[p].l=l;
+    t[p].r=r;
+    if (l==r)
+    {
+        t[p].dat=b[l];
+        return ;
     }
-    TreeNode *buildTree_in_pre(std::vector<int> &pre, std::vector<int> &in){
-        std::unordered_map<int, int> mp;
-        for(int i=in.size()-1; i>=0; --i)mp[in[i]] = i;
-        std::function<TreeNode *(int, int, int, int)> _dfs
-            = [&](int pl, int pr, int il, int ir){
-                TreeNode *head = NULL;
-                if(pl >= pr)return head;
-                int len = mp[pre[pl]] - il;
-                head = new TreeNode(pre[pl]);
-                head->left  = _dfs(pl + 1, pl + len + 1, il, il + len);
-                head->right = _dfs(pl + len + 1, pr, il + len + 1, ir);
-                return head;
-            };
-        return _dfs(0, in.size(), 0, in.size());
+    ll mid=(l+r)>>1;
+    build(l(p),l,mid);
+    build(r(p),mid+1,r);
+    t[p].dat=gcd(t[l(p)].dat,t[r(p)].dat);
+}
+void change(ll p,ll x,ll v)
+{
+    if (t[p].l==t[p].r)
+    {
+        t[p].dat+=v;
+        return ;
     }
-};
-namespace p1{
-    const int N = 64;
-    int n, f = 0;
-    int pre[N], post[N];
-    std::vector<int> in;
-    std::unordered_map<int, int> mp;
-    int main(int argc,const char *argv[]){
-        std::cin >> n;
-        for(int i=0; i<n; ++i)std::cin >> pre[i];
-        for(int i=0; i<n; ++i)std::cin >> post[i];
-        for(int i=0; i<n; ++i)mp[post[i]] = i;
-        std::function<void(int, int, int)> _dfs
-            = [&](int root, int l, int r){
-                if(l >= r)return;
-                if(l == r-1){
-                    in.emplace_back(pre[root]);
-                    return ;
-                }
-                int ll = mp[pre[root + 1]];
-                f |= ll == r - 2;
-                _dfs(root + 1, l, ll + 1);
-                in.emplace_back(pre[root]);
-                _dfs(root + ll - l + 2, ll + 1, r - 1);
-            };
-        _dfs(0, 0, n);
-        std::cout << (f ? "No" : "Yes") << std::endl;
-        for(auto &x : in)std::cout << x << " ";
-        std::cout << std::endl;
-        return 0;
+    ll mid=(t[p].l+t[p].r)>>1;
+    if (x<=mid)
+        change(l(p),x,v);
+    else
+        change(r(p),x,v);
+    t[p].dat=gcd(t[l(p)].dat,t[r(p)].dat);
+}
+ll ask(ll p,ll l,ll r)
+{
+    if (l<=t[p].l && r>=t[p].r)
+        return t[p].dat;
+    ll mid=(t[p].l+t[p].r)>>1;
+    ll val=0;
+    if (l<=mid)
+        val=gcd(val,ask(l(p),l,r));
+    if (r>mid)
+        val=gcd(val,ask(r(p),l,r));
+    return abs(val);
+}
+int main()
+{
+    cin>>n>>m;
+    for(i=1;i<=n;i++)
+    {
+        scanf("%lld",&a[i]);
+        b[i]=a[i]-a[i-1];
     }
-};
-int main(int argc,const char *argv[]){
-    std::ios::sync_with_stdio(false);
-    int n, ans = 0;
-    std::cin >> n;
-    std::vector<int> nums(n), dp(n);
-    for(auto &x : nums)std::cin >> x;
-    for(int ml = 0; ml<n-2; ++ml){
-        for(int mr = ml + 1; mr<n-1; ++mr){
-            if(nums[ml] <= nums[mr])continue;
-            int cntl = 0, cntr = 0;
-            for(int l = 0; l<ml; ++l)cntl += nums[l] < nums[mr];
-            for(int r = mr + 1; r<n; ++r)cntr += nums[r] > nums[ml];
-            ans += cntl * cntr;
+    build(1,1,n);
+    while(m--)
+    {
+        char str[2]; 
+        scanf("%s", str);
+        ll l,r,x;
+        scanf("%lld%lld",&l,&r);
+        if (str[0]=='C')
+        {
+            scanf("%lld\n",&x);
+            change(1,l,x);
+            if (r<n)
+                change(1,r+1,-x);
+            add(l,x);
+            add(r+1,-x);
+        }
+        else
+        {
+            scanf("\n");
+            ll ans=a[l]+sum(l);
+            ll ans_2=l<r ? ask(1,l+1,r):0;
+            printf("%lld\n",gcd(ans,ans_2));
         }
     }
-    std::cout << ans << std::endl;
     return 0;
 }
